@@ -1,55 +1,27 @@
-import sqlite3
-
-polaczenie = sqlite3.connect("sklep.db")
-kursor = polaczenie.cursor()
-
-# Tworzenie tabeli
-kursor.execute("""
-    CREATE TABLE IF NOT EXISTS produkty (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nazwa TEXT NOT NULL,
-        kategoria TEXT NOT NULL,
-        cena REAL NOT NULL,
-        ilosc INTEGER NOT NULL
-    )
-""")
-
-# Dane startowe (tylko jeśli tabela jest pusta)
-kursor.execute("SELECT COUNT(*) FROM produkty")
-if kursor.fetchone()[0] == 0:
-    kursor.executemany(
-        "INSERT INTO produkty (nazwa, kategoria, cena, ilosc) VALUES (?, ?, ?, ?)",
-        [
-            ("mleko", "nabiał", 3.50, 10),
-            ("chleb", "pieczywo", 4.20, 5),
-            ("ser", "nabiał", 12.99, 0),
-            ("jabłko", "owoce", 2.10, 20),
-            ("masło", "nabiał", 7.80, 0),
-        ],
-    )
-    polaczenie.commit()
-
-
-def pobierz_wszystkie():
-    kursor.execute("SELECT nazwa, kategoria, cena, ilosc FROM produkty")
-    return kursor.fetchall()
+# Lista produktów: nazwa, kategoria, cena, ilość sztuk
+produkty = [
+    {"nazwa": "mleko", "kategoria": "nabiał", "cena": 3.50, "ilosc": 10},
+    {"nazwa": "chleb", "kategoria": "pieczywo", "cena": 4.20, "ilosc": 5},
+    {"nazwa": "ser", "kategoria": "nabiał", "cena": 12.99, "ilosc": 0},
+    {"nazwa": "jabłko", "kategoria": "owoce", "cena": 2.10, "ilosc": 20},
+    {"nazwa": "masło", "kategoria": "nabiał", "cena": 7.80, "ilosc": 0},
+]
 
 
 def wyswietl_produkt(p):
-    nazwa, kategoria, cena, ilosc = p
-    print(f"{nazwa} | {kategoria} | {cena:.2f} zł | {ilosc} szt.")
+    print(f"{p['nazwa']} | {p['kategoria']} | {p['cena']:.2f} zł | {p['ilosc']} szt.")
 
 
 def wszystkie_produkty():
     print("\n--- Wszystkie produkty ---")
-    for p in pobierz_wszystkie():
+    for p in produkty:
         wyswietl_produkt(p)
 
 
 def dostepne_produkty():
     print("\n--- Dostępne produkty ---")
-    for p in pobierz_wszystkie():
-        if p[3] == 0:
+    for p in produkty:
+        if p["ilosc"] == 0:
             continue
         wyswietl_produkt(p)
 
@@ -57,8 +29,8 @@ def dostepne_produkty():
 def wyszukaj_produkt():
     szukana = input("Podaj produkt: ").lower()
     znaleziono = False
-    for p in pobierz_wszystkie():
-        if p[0].lower() == szukana:
+    for p in produkty:
+        if p["nazwa"].lower() == szukana:
             wyswietl_produkt(p)
             znaleziono = True
             break
@@ -74,8 +46,8 @@ def produkty_do_ceny():
         return
     znaleziono = False
     print(f"\n--- Produkty do {max_cena:.2f} zł ---")
-    for p in pobierz_wszystkie():
-        if p[2] <= max_cena:
+    for p in produkty:
+        if p["cena"] <= max_cena:
             wyswietl_produkt(p)
             znaleziono = True
     if not znaleziono:
@@ -85,20 +57,15 @@ def produkty_do_ceny():
 def kup_produkt():
     nazwa = input("Podaj produkt: ").lower()
     znaleziono = False
-    kursor.execute("SELECT id, nazwa, ilosc FROM produkty")
-    for id_produktu, nazwa_bazy, ilosc in kursor.fetchall():
-        if nazwa_bazy.lower() == nazwa:
+    for p in produkty:
+        if p["nazwa"].lower() == nazwa:
             znaleziono = True
-            if ilosc == 0:
+            if p["ilosc"] == 0:
                 print("Produkt niedostępny")
             else:
-                kursor.execute(
-                    "UPDATE produkty SET ilosc = ilosc - 1 WHERE id = ?",
-                    (id_produktu,),
-                )
-                polaczenie.commit()
-                print(f"Kupiono {nazwa_bazy}")
-                print(f"Pozostało sztuk: {ilosc - 1}")
+                p["ilosc"] -= 1
+                print(f"Kupiono {p['nazwa']}")
+                print(f"Pozostało sztuk: {p['ilosc']}")
             break
     if not znaleziono:
         print("Nie znaleziono produktu")
@@ -135,5 +102,3 @@ while True:
         break
     else:
         print("Wybrano złą opcję")
-
-polaczenie.close()
